@@ -12,6 +12,11 @@ import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.coprocessor.BixiProtocol;
+import org.apache.hadoop.hbase.filter.CompareFilter;
+import org.apache.hadoop.hbase.filter.Filter;
+import org.apache.hadoop.hbase.filter.PrefixFilter;
+import org.apache.hadoop.hbase.filter.RegexStringComparator;
+import org.apache.hadoop.hbase.filter.RowFilter;
 import org.apache.hadoop.hbase.util.Bytes;
 
 public class BixiClient {
@@ -19,7 +24,8 @@ public class BixiClient {
 
   HTable table;
   Configuration conf;
-  private static final byte[] TABLE_NAME = Bytes.toBytes("BixiData");
+  private static final byte[] TABLE_NAME = Bytes.toBytes("Station_Statistics");
+  private static byte[] idsFamily = "statistics".getBytes();
 
   public BixiClient(Configuration conf) throws IOException {
     this.conf = conf;
@@ -69,9 +75,24 @@ public class BixiClient {
       String dateWithHour) throws IOException, Throwable {
     final Scan scan = new Scan();
     log.debug("in getAvgUsageForAHr: " + dateWithHour);
+    //PrefixFilter filter = new PrefixFilter(dateWithHour.getBytes());
+    
+    //scan.setFilter(filter);
     if (dateWithHour != null) {
-      scan.setStartRow((dateWithHour + "_00").getBytes());
+      scan.setStartRow((dateWithHour).getBytes());
       scan.setStopRow((dateWithHour + "_59").getBytes());
+      if(stationIds!=null && stationIds.size()>0){
+    	  String regex = "";
+    	  boolean start = true;
+    	  for(String sId : stationIds){
+    		  if(!start)
+    			  regex += "|";
+    		  start = false;
+    		  regex += sId;
+    	  }
+    	  Filter filter = new RowFilter(CompareFilter.CompareOp.EQUAL, new RegexStringComparator(regex));
+    	  scan.setFilter(filter);
+      }
     }
     class BixiCallBack implements Batch.Callback<Map<String, Integer>> {
       Map<String, Integer> res = new HashMap<String, Integer>();

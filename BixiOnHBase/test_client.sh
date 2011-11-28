@@ -3,7 +3,7 @@
 # PROGNAME$(basename $0)
 
 myDir=$(readlink -f $0 | xargs dirname)
-pushd .
+#pushd .
 
 echo "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"
 echo "test getAvailBikes, stationid 01_10_2010__00"
@@ -14,7 +14,7 @@ echo "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"
 echo "test getAvgUsageForAHr, a date as 01_10_2010__00"
 echo "give list of ids with # as delimitor "
 echo "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"
-${myDir}/run_bixi_client.sh 2 1#2#3#4#5#6 01_10_2010__00
+${myDir}/run_bixi_client.sh 2 01_10_2010__00 1#2#3#4#5#6
 
 echo "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"
 echo "test AverageAvailBikesWithScan, 12, sDate<10_10_2010__12>,"

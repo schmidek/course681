@@ -23,9 +23,11 @@ public class BixiImplementation extends BaseEndpointCoprocessor implements
 
   static final Log log = LogFactory.getLog(BixiImplementation.class);
 
-  private static byte[] colFamily = "Data".getBytes();
+  private static byte[] colFamily = "statistics".getBytes();
   private final static String BIXI_DELIMITER = "#";
   private final static int BIXI_DATA_LENGTH = 11;
+  private static byte[] stationTableName = "Station_Cluster".getBytes();
+  private static byte[] stationIdsFamily = "stations".getBytes();
 
   @Override
   public Map<String, Integer> giveAvailableBikes(long milliseconds,
@@ -87,10 +89,10 @@ public class BixiImplementation extends BaseEndpointCoprocessor implements
   @Override
   public Map<String, Integer> giveAverageUsage(List<String> stationIds,
       Scan scan) throws IOException {
-    for (String qualifier : stationIds) {
-      log.debug("adding qualifier: " + qualifier);
-      scan.addColumn(colFamily, qualifier.getBytes());
-    }
+
+	System.err.println("scanning");
+	scan.addFamily(colFamily);
+
     InternalScanner scanner = ((RegionCoprocessorEnvironment) getEnvironment())
         .getRegion().getScanner(scan);
     List<KeyValue> res = new ArrayList<KeyValue>();
@@ -102,13 +104,19 @@ public class BixiImplementation extends BaseEndpointCoprocessor implements
         rowCounter++;
         hasMoreResult = scanner.next(res);
         for (KeyValue kv : res) {
-          log.debug("got a kv: " + kv);
-          int emptyDocks = getEmptyDocks(kv);
-          String id = Bytes.toString(kv.getQualifier());
-          Integer prevVal = result.get(id);
-          emptyDocks = emptyDocks + (prevVal != null ? prevVal.intValue() : 0);
-          log.debug("result to be added is: " + emptyDocks + " id: " + id);
-          result.put(id, emptyDocks);
+        	System.err.println("got a kv: " + kv);
+          String stationId = (kv.getKeyString().split(":")[1]).split("\\\\")[0];
+          System.err.println("stationid: " + stationId);
+          String value = new String(kv.getValue());
+          System.err.println("value: " + value);
+          Integer usage = Integer.parseInt(value.split(",")[1]);
+          System.err.println("usage: " + usage);
+
+          if(result.containsKey(stationId)){
+        	  result.put(stationId, usage + result.get(stationId));
+          }else{
+        	  result.put(stationId, usage);
+          }
         }
         res.clear();
       } while (hasMoreResult);
@@ -116,7 +124,7 @@ public class BixiImplementation extends BaseEndpointCoprocessor implements
       scanner.close();
     }
     for (Map.Entry<String, Integer> e : result.entrySet()) {
-      log.debug("counter and value is" + rowCounter + "," + e.getValue());
+    	System.err.println("counter and value is" + rowCounter + "," + e.getValue());
       int i = e.getValue() / rowCounter;
       result.put(e.getKey(), i);
     }

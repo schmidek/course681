@@ -3,7 +3,7 @@
 # PROGNAME=$(basename $0)
 
 myDir=$(readlink -f $0 | xargs dirname)
-pushd .
+#pushd .
 
 
 #cd ${myDir}/../

@@ -23,66 +23,28 @@ import org.apache.hadoop.hbase.util.Bytes;
 public class BixiClient {
   public static final Log log = LogFactory.getLog(BixiClient.class);
 
-  HTable table, cluster_table;
+  HTable stat_table, cluster_table;
   Configuration conf;
-  private static final byte[] TABLE_NAME = Bytes.toBytes("Station_Statistics");
-  private static final byte[] CLUSTER_TABLE_NAME = Bytes.toBytes("Station_Cluster");
+  private static final byte[] STATION_TABLE_NAME = Bytes.toBytes("Station_Statistics");
+  private static final byte[] STATION_CLUSTER_TABLE_NAME = Bytes.toBytes("Station_Cluster");
 
   public BixiClient(Configuration conf) throws IOException {
     this.conf = conf;
-    this.table = new HTable(conf, TABLE_NAME);
-    this.cluster_table = new HTable(conf, CLUSTER_TABLE_NAME);
+    this.stat_table = new HTable(conf, STATION_TABLE_NAME);
+    this.cluster_table = new HTable(conf, STATION_CLUSTER_TABLE_NAME);
     log.debug("in constructor of BixiClient");
   }
 
-  /**
-* @param stationIds
-* @param dateWithHour
-* : most simple format; format is: dd_mm_yyyy__hh
-* @return //01_10_2010__01
-* @throws Throwable
-* @throws IOException
-*/
-  public <R> Map<String, Integer> getAvailBikes(final List<String> stationIds,
-      String dateWithHour) throws IOException, Throwable {
+  public Map<String, Integer> getAvgUsageForPeriod_Schema2(final List<String> stationIds,
+      String startDateWithHour, String endDateWithHour) throws IOException, Throwable {
     final Scan scan = new Scan();
-    log.debug("in getAvailBikes: " + dateWithHour);
-    if (dateWithHour != null) {
-      scan.setStartRow((dateWithHour + "_00").getBytes());
-      scan.setStopRow((dateWithHour + "_59").getBytes());
+    log.debug("in getAvgUsageForPeriod: " + startDateWithHour);
+    if(endDateWithHour == null){
+    	endDateWithHour = startDateWithHour;
     }
-    class BixiCallBack implements Batch.Callback<Map<String, Integer>> {
-      Map<String, Integer> res = new HashMap<String, Integer>();
-
-      @Override
-      public void update(byte[] region, byte[] row, Map<String, Integer> result) {
-        log.debug("in update, result is: " + result.toString());
-        System.out.println("in update as a sop" + result.toString());
-        res = result;
-      }
-    }
-    BixiCallBack callBack = new BixiCallBack();
-    table.coprocessorExec(BixiProtocol.class, scan.getStartRow(), scan
-        .getStopRow(), new Batch.Call<BixiProtocol, Map<String, Integer>>() {
-      public Map<String, Integer> call(BixiProtocol instance)
-          throws IOException {
-        return instance.giveAvailableBikes(0, stationIds, scan);
-      };
-    }, callBack);
-
-    return callBack.res;
-  }
-
-  public Map<String, Integer> getAvgUsageForAHr(final List<String> stationIds,
-      String dateWithHour) throws IOException, Throwable {
-    final Scan scan = new Scan();
-    log.debug("in getAvgUsageForAHr: " + dateWithHour);
-    //PrefixFilter filter = new PrefixFilter(dateWithHour.getBytes());
-    
-    //scan.setFilter(filter);
-    if (dateWithHour != null) {
-      scan.setStartRow((dateWithHour).getBytes());
-      scan.setStopRow((dateWithHour + "_ZZ").getBytes());
+    if (startDateWithHour != null) {
+      scan.setStartRow((startDateWithHour).getBytes());
+      scan.setStopRow((endDateWithHour + "_ZZ").getBytes());
       if(stationIds!=null && stationIds.size()>0){
     	  String regex = "";
     	  boolean start = true;
@@ -126,11 +88,11 @@ public class BixiClient {
     }
 
     BixiCallBack callBack = new BixiCallBack();
-    table.coprocessorExec(BixiProtocol.class, scan.getStartRow(), scan
+    stat_table.coprocessorExec(BixiProtocol.class, scan.getStartRow(), scan
         .getStopRow(), new Batch.Call<BixiProtocol, Map<String, Integer>>() {
       public Map<String, Integer> call(BixiProtocol instance)
           throws IOException {
-        return instance.giveAverageUsage(stationIds, scan);
+        return instance.getAverageUsage_Schema2(stationIds, scan);
       };
     }, callBack);
 
@@ -150,8 +112,8 @@ public class BixiClient {
 * @throws IOException
 * @throws Throwable
 */
-  public Map<String, Double> getAvailableBikesFromAPoint(final double lat,
-      final double lon, final double radius, String dateWithHour)
+  public Map<String, Double> getAvailableBikesFromAPoint_Schema2(final double lat,
+      final double lon, String dateWithHour)
       throws IOException, Throwable {
 	  
 	  List<String> stationIds = this.getStationsNearPoint(lat, lon);
@@ -187,11 +149,11 @@ public class BixiClient {
     }
 
     BixiAvailCallBack callBack = new BixiAvailCallBack();
-    table.coprocessorExec(BixiProtocol.class, scan.getStartRow(), scan.getStopRow(),
+    stat_table.coprocessorExec(BixiProtocol.class, scan.getStartRow(), scan.getStopRow(),
         new Batch.Call<BixiProtocol, Map<String, Double>>() {
           public Map<String, Double> call(BixiProtocol instance)
               throws IOException {
-            return instance.getAvailableBikesFromAPoint(lat, lon, radius, scan);
+            return instance.getAvailableBikesFromAPoint_Schema2(lat, lon, scan);
           };
         }, callBack);
 
@@ -219,7 +181,7 @@ public class BixiClient {
 	        new Batch.Call<BixiProtocol, List<String>>() {
 	          public List<String> call(BixiProtocol instance)
 	              throws IOException {
-	            return instance.getStationsNearPoint(lat, lon);
+	            return instance.getStationsNearPoint_Schema2(lat, lon);
 	          };
 	        }, callBack);
 

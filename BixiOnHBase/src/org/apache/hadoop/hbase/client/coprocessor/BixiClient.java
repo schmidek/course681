@@ -23,14 +23,15 @@ import org.apache.hadoop.hbase.util.Bytes;
 public class BixiClient {
   public static final Log log = LogFactory.getLog(BixiClient.class);
 
-  HTable table;
+  HTable table, cluster_table;
   Configuration conf;
   private static final byte[] TABLE_NAME = Bytes.toBytes("Station_Statistics");
-  private static byte[] idsFamily = "statistics".getBytes();
+  private static final byte[] CLUSTER_TABLE_NAME = Bytes.toBytes("Station_Cluster");
 
   public BixiClient(Configuration conf) throws IOException {
     this.conf = conf;
     this.table = new HTable(conf, TABLE_NAME);
+    this.cluster_table = new HTable(conf, CLUSTER_TABLE_NAME);
     log.debug("in constructor of BixiClient");
   }
 
@@ -152,8 +153,10 @@ public class BixiClient {
   public Map<String, Double> getAvailableBikesFromAPoint(final double lat,
       final double lon, final double radius, String dateWithHour)
       throws IOException, Throwable {
+	  
+	  List<String> stationIds = this.getStationsNearPoint(lat, lon);
+	  
 	  final Scan scan = new Scan();
-	  List<String> stationIds = new ArrayList<String>();
 	  if (dateWithHour != null) {
 	      scan.setStartRow((dateWithHour).getBytes());
 	      scan.setStopRow((dateWithHour + "_ZZ").getBytes());
@@ -175,7 +178,7 @@ public class BixiClient {
 
       @Override
       public void update(byte[] region, byte[] row, Map<String, Double> result) {
-        res = result;
+        res.putAll(result);
       }
 
       private Map<String, Double> getResult() {
@@ -194,6 +197,33 @@ public class BixiClient {
 
     return callBack.getResult();
 
+  }
+  
+  public List<String> getStationsNearPoint(final double lat, final double lon) throws IOException, Throwable{
+	  
+	  class BixiAvailCallBack implements Batch.Callback<List<String>> {
+	      List<String> res = new ArrayList<String>();
+
+	      @Override
+	      public void update(byte[] region, byte[] row, List<String> result) {
+	        res.addAll(result);
+	      }
+
+	      private List<String> getResult() {
+	        return res;
+	      }
+	    }
+
+	    BixiAvailCallBack callBack = new BixiAvailCallBack();
+	    cluster_table.coprocessorExec(BixiProtocol.class, null, null,
+	        new Batch.Call<BixiProtocol, List<String>>() {
+	          public List<String> call(BixiProtocol instance)
+	              throws IOException {
+	            return instance.getStationsNearPoint(lat, lon);
+	          };
+	        }, callBack);
+
+	    return callBack.getResult();
   }
 }
 

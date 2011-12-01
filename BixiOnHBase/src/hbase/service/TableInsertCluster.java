@@ -21,8 +21,8 @@ public class TableInsertCluster {
 
 	  static Configuration conf = HBaseConfiguration.create();
 	  HTable table;
-	  static byte[] tableName = "Station_Cluster".getBytes();
-	  static byte[] idsFamily = "stations".getBytes();
+	  static byte[] tableName = TableSchemaDef.SCHEMA3_CLUSTER_TABLE_NAME.getBytes();
+	  static byte[] idsFamily = TableSchemaDef.SCHEMA3_CLUSTER_FAMILY_NAME.getBytes();
 	 	  
 	  
 	  /**
@@ -48,7 +48,7 @@ public class TableInsertCluster {
 		clustering.doClustering(filename);
 		clustering.aggreateCluster();
 		Hashtable<String,List<String>> cluster_structure = clustering.getClusters();
-		
+		int row = 0;
 	  try{
 			Set<String> keys = cluster_structure.keySet();
 			Iterator<String> ie = keys.iterator();				
@@ -63,12 +63,14 @@ public class TableInsertCluster {
 					put.add(idsFamily, stationId.getBytes(), clustering.getOneStation(stationId).getMetadata().getBytes());
 				}	
 			    //System.out.println(new String(put.getRow()));
+				row++;
 			    table.put(put);				
 			}
     
 	  }catch(Exception e){
 		  e.printStackTrace();
 	  }
+	  System.out.println("inserted row : "+row);
 	  
 	 }
 

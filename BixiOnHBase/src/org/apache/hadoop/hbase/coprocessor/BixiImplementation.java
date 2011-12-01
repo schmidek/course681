@@ -2,6 +2,7 @@ package org.apache.hadoop.hbase.coprocessor;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -186,20 +187,44 @@ public class BixiImplementation extends BaseEndpointCoprocessor implements
   }
   
   public List<String> getStationsNearPoint(double lat, double lon) throws IOException {
-	  
-	return null;
+      Scan scan = new Scan();
+      InternalScanner scanner = ((RegionCoprocessorEnvironment) getEnvironment())
+      .getRegion().getScanner(scan);
+      boolean hasMoreResult = false;
+      int rowCounter = 0;
+      List<KeyValue> res = new ArrayList<KeyValue>();
+      try {
+        do {
+          rowCounter++;
+          hasMoreResult = scanner.next(res);
+          for (KeyValue kv : res) {
+        	if(!Bytes.toString(kv.getQualifier()).equalsIgnoreCase("ids")){
+        		//only look at stationid column
+        		continue;
+        	}
+          	System.err.println("got a kv: " + kv);
+            String clusterId = Bytes.toString(kv.getRow());
+            System.err.println("clusterId: " + clusterId);
+            String[] parts = clusterId.split("-");
+            double cLat = Double.parseDouble(parts[0]);
+            double cLon = Double.parseDouble(parts[1]);
+            double dx = Double.parseDouble(parts[2]);
+            double dy = Double.parseDouble(parts[3]);
+            double distx = lat-cLat;
+            double disty = lon-cLon;
+            if(distx >= 0 && distx <= dx && disty >= 0 && disty <= dy){
+            	//get stations in cluster
+            	return Arrays.asList(Bytes.toString(kv.getValue()).split(","));
+            }
+          }
+          res.clear();
+        } while (hasMoreResult);
+      } finally {
+        scanner.close();
+      }
+	  return new ArrayList<String>();
   }
 
   final static double RADIUS = 6371;
-
-  private double giveDistance(double lat1, double lon1, double lat2, double lon2) {
-    double dLon = Math.toRadians(lon1 - lon2);
-    double dLat = Math.toRadians(lat1 - lat2);
-    double a = Math.pow(Math.sin(dLat / 2), 2) + Math.cos(Math.toRadians(lat1))
-        * Math.cos(Math.toRadians(lat2)) * Math.pow(Math.sin(dLon / 2), 2);
-    double res = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    double distance = RADIUS * res;
-    return distance;
-  }
 
 }

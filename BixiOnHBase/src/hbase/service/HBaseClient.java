@@ -16,8 +16,33 @@ public class HBaseClient {
 		HBaseUtil hbase  = new HBaseUtil(conf);		
 		
 		String tablename = null;		
-		if (args.length == 2) {			
-			if("1".equals(args[0])){	
+		if (args.length > 1) {	
+			
+			if("31".equals(args[0])){ // schema 3
+				String[] metrics = {TableSchemaDef.SCHEMA3_CLUSTER_FAMILY_NAME}; 	
+				hbase.createTable(TableSchemaDef.SCHEMA3_CLUSTER_TABLE_NAME,metrics);
+				System.out.println("finish creating the table: "+TableSchemaDef.SCHEMA3_CLUSTER_TABLE_NAME);				
+				metrics[0] = TableSchemaDef.SCHEMA3_BIKE_FAMILY_NAME; 				
+				hbase.createTable(TableSchemaDef.SCHEMA3_BIKE_TABLE_NAME, metrics);	
+				System.out.println("finish creating the table: "+TableSchemaDef.SCHEMA3_BIKE_TABLE_NAME);
+			}else if("32".equals(args[0])){ // schema 3 insert the cluster table
+				try{
+					 System.out.println("insert the cluster....");	
+					  TableInsertCluster inserter = new TableInsertCluster();
+					  inserter.insertRow();	
+					  System.out.println("finish....");
+				}catch(Exception e){
+					e.printStackTrace();
+				}							
+			}else if("33".equals(args[0])){
+				try{
+					 TableInsertStatistics inserter = new TableInsertStatistics();		
+					 String fileDir = (args.length==2)? args[1]:"./data2";
+					 inserter.batchInsertRow4schema3(fileDir);										
+				}catch(Exception e){
+					e.printStackTrace();
+				}				
+			}else if("1".equals(args[0])){	
 				tablename = args[1];
 				String[] metrics = {"Data"}; 
 				System.out.println("start to create table");
@@ -31,6 +56,15 @@ public class HBaseClient {
 				hbase.deleteTable(tablename);
 			}else if("11".equals(args[0])){
 				try{
+					tablename = "BixiData";
+					String[] metrics = {"Data"}; 					
+					hbase.createTable(tablename, metrics);
+					System.out.println("finish creating the table: "+tablename);
+				}catch(Exception e){
+					e.printStackTrace();
+				}
+			}else if("12".equals(args[0])){
+				try{
 				    TableInsertPrev inserter = new TableInsertPrev();			    
 				    inserter.insertXmlData(args[1]);					
 				}catch(Exception e){
@@ -38,14 +72,14 @@ public class HBaseClient {
 				}
 			}else if("21".equals(args[0])){
 				tablename = "Station_Cluster";
-				String[] metrics = {"stations"}; 
-				System.out.println("start to create table");
-				hbase.createTable(tablename, metrics);								
+				String[] metrics = {"stations"}; 				
+				hbase.createTable(tablename, metrics);	
+				System.out.println("finish creating the table: "+tablename);
 			}else if("22".equals(args[0])){
 				tablename = "Station_Statistics";
 				String[] metrics = {"statistics"}; 
 				System.out.println("start to create table");
-				hbase.createTable(tablename, metrics);								
+				hbase.createTable(tablename, metrics);	
 			}else if("23".equals(args[0])){
 				try{
 					  TableInsertCluster inserter = new TableInsertCluster();
@@ -56,8 +90,8 @@ public class HBaseClient {
 			}else if("24".equals(args[0])){
 				try{
 					 TableInsertStatistics inserter = new TableInsertStatistics();		
-					 String fileDir = (args.length==2)? args[1]:"/data2";
-					 inserter.insertRow(fileDir);										
+					 String fileDir = (args.length==2)? args[1]:"./data2";
+					 inserter.batchInsertRow(fileDir);										
 				}catch(Exception e){
 					e.printStackTrace();
 				}

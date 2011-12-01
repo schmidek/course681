@@ -150,31 +150,36 @@ public class BixiImplementation extends BaseEndpointCoprocessor implements
 */
   @Override
   public Map<String, Double> getAvailableBikesFromAPoint(double lat,
-      double lon, double radius, Get get) throws IOException {
-    Result r = ((RegionCoprocessorEnvironment) getEnvironment()).getRegion()
-        .get(get, null);
-    log.debug("r is "+r);
-    log.debug(r.getMap().toString());
+      double lon, double radius, Scan scan) throws IOException {
+	  InternalScanner scanner = ((RegionCoprocessorEnvironment) getEnvironment())
+		        .getRegion().getScanner(scan);
     Map<String, Double> result = new HashMap<String, Double>();
+    boolean hasMoreResult = false;
+    int rowCounter = 0;
+    List<KeyValue> res = new ArrayList<KeyValue>();
     try {
-      String s = null, latStr = null, lonStr = null;
-      for (KeyValue kv : r.raw()) {
-        s = Bytes.toString(kv.getValue());
-        log.debug("cell value is: "+s);
-        String[] sArr = s.split(BIXI_DELIMITER); // array of key=value pairs
-        latStr = sArr[3];
-        lonStr = sArr[4];
-        latStr = latStr.substring(latStr.indexOf("=")+1);
-        lonStr = lonStr.substring(lonStr.indexOf("=")+1);
-        log.debug("lon/lat values are: "+lonStr +"; "+latStr);
-        double distance =giveDistance(Double.parseDouble(latStr), Double.parseDouble(lonStr),
-            lat, lon)- radius;
-        log.debug("distance is : "+ distance);
-        if ( distance < 0) {// add it
-           result.put(sArr[0], distance);
+      do {
+        rowCounter++;
+        hasMoreResult = scanner.next(res);
+        for (KeyValue kv : res) {
+        	System.err.println("got a kv: " + kv);
+          String stationId = (kv.getKeyString().split(":")[1]).split("\\\\")[0];
+          System.err.println("stationid: " + stationId);
+          String value = new String(kv.getValue());
+          System.err.println("value: " + value);
+          Double free = Double.parseDouble(value.split(",")[0]);
+          System.err.println("free: " + free);
+
+          if(result.containsKey(stationId)){
+        	  result.put(stationId, free + result.get(stationId));
+          }else{
+        	  result.put(stationId, free);
+          }
         }
-      }
+        res.clear();
+      } while (hasMoreResult);
     } finally {
+      scanner.close();
     }
     return result;
   }

@@ -1,6 +1,7 @@
 package org.apache.hadoop.hbase.client.coprocessor;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -80,7 +81,7 @@ public class BixiClient {
     //scan.setFilter(filter);
     if (dateWithHour != null) {
       scan.setStartRow((dateWithHour).getBytes());
-      scan.setStopRow((dateWithHour + "_59").getBytes());
+      scan.setStopRow((dateWithHour + "_ZZ").getBytes());
       if(stationIds!=null && stationIds.size()>0){
     	  String regex = "";
     	  boolean start = true;
@@ -151,8 +152,24 @@ public class BixiClient {
   public Map<String, Double> getAvailableBikesFromAPoint(final double lat,
       final double lon, final double radius, String dateWithHour)
       throws IOException, Throwable {
-    final Get get = new Get((dateWithHour + "_00").getBytes());
-    log.debug("in getAvgUsageForAHr: " + dateWithHour);
+	  final Scan scan = new Scan();
+	  List<String> stationIds = new ArrayList<String>();
+	  if (dateWithHour != null) {
+	      scan.setStartRow((dateWithHour).getBytes());
+	      scan.setStopRow((dateWithHour + "_ZZ").getBytes());
+	      if(stationIds!=null && stationIds.size()>0){
+	    	  String regex = "";
+	    	  boolean start = true;
+	    	  for(String sId : stationIds){
+	    		  if(!start)
+	    			  regex += "|";
+	    		  start = false;
+	    		  regex += sId;
+	    	  }
+	    	  Filter filter = new RowFilter(CompareFilter.CompareOp.EQUAL, new RegexStringComparator(regex));
+	    	  scan.setFilter(filter);
+	      }
+	    }
     class BixiAvailCallBack implements Batch.Callback<Map<String, Double>> {
       Map<String, Double> res = new HashMap<String, Double>();
 
@@ -167,11 +184,11 @@ public class BixiClient {
     }
 
     BixiAvailCallBack callBack = new BixiAvailCallBack();
-    table.coprocessorExec(BixiProtocol.class, get.getRow(), get.getRow(),
+    table.coprocessorExec(BixiProtocol.class, scan.getStartRow(), scan.getStopRow(),
         new Batch.Call<BixiProtocol, Map<String, Double>>() {
           public Map<String, Double> call(BixiProtocol instance)
               throws IOException {
-            return instance.getAvailableBikesFromAPoint(lat, lon, radius, get);
+            return instance.getAvailableBikesFromAPoint(lat, lon, radius, scan);
           };
         }, callBack);
 

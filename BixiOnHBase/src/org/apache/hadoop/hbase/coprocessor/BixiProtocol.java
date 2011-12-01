@@ -28,5 +28,6 @@ public interface BixiProtocol extends CoprocessorProtocol {
 
   Map<String, Double> getAvailableBikesFromAPoint(double lat, double lon,
       double radius, Scan scan) throws IOException;
+  List<String> getStationsNearPoint(double lat, double lon) throws IOException;
 
 }

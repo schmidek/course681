@@ -151,6 +151,7 @@ public class BixiImplementation extends BaseEndpointCoprocessor implements
   @Override
   public Map<String, Double> getAvailableBikesFromAPoint(double lat,
       double lon, double radius, Scan scan) throws IOException {
+	  scan.addFamily(colFamily);
 	  InternalScanner scanner = ((RegionCoprocessorEnvironment) getEnvironment())
 		        .getRegion().getScanner(scan);
     Map<String, Double> result = new HashMap<String, Double>();
@@ -182,6 +183,11 @@ public class BixiImplementation extends BaseEndpointCoprocessor implements
       scanner.close();
     }
     return result;
+  }
+  
+  public List<String> getStationsNearPoint(double lat, double lon) throws IOException {
+	  
+	return null;
   }
 
   final static double RADIUS = 6371;

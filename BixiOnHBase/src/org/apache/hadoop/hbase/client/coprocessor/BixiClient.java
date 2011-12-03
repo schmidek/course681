@@ -126,7 +126,7 @@ public class BixiClient {
       @Override
       public void update(byte[] region, byte[] row, Map<String, TotalNum> result) {
     	  long node_access = System.currentTimeMillis();
-  		  System.out.println("node return time : "
+  		  System.out.println("node return time for " + Bytes.toString(region) + ": "
   				+ (node_access - starttime));
         for (Map.Entry<String, TotalNum> e : result.entrySet()) {
           if (res.containsKey(e.getKey())) { // add the val
@@ -249,7 +249,7 @@ public class BixiClient {
 	      @Override
 	      public void update(byte[] region, byte[] row, Map<String, TotalNum> result) {
 	    	  long node_access = System.currentTimeMillis();
-	  		  System.out.println("node return time : "
+	  		  System.out.println("node return time for " + Bytes.toString(region) + ": "
 	  				+ (node_access - starttime));
 	    	  for (Map.Entry<String, TotalNum> e : result.entrySet()) {
 	    		  if (res.containsKey(e.getKey())) { // add the val
